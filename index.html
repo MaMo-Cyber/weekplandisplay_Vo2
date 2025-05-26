@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wochenplan</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f0f0f0;
+      transition: background-color 0.3s;
+    }
+    body.dark-theme {
+      background-color: #333;
+      color: #f0f0f0;
+    }
+    h1, h2, h3 {
+      color: #333;
+    }
+    h1.dark-theme, h2.dark-theme, h3.dark-theme {
+      color: #f0f0f0;
+    }
+    #settings {
+      display: none;
+      position: fixed;
+      top: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ccc;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    #settings.dark-theme {
+      background: #444;
+      border-color: #555;
+    }
+    #settings-button {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      font-size: 24px;
+      cursor: pointer;
+      z-index: 10;
+    }
+    #back-button {
+      position: fixed;
+      top: 10px;
+      right: 50px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      cursor: pointer;
+      z-index: 10;
+    }
+    #back-button:hover {
+      background-color: #0056b3;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      background-color: #fff;
+    }
+    table.dark-theme {
+      background-color: #555;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    th.dark-theme, td.dark-theme {
+      border-color: #777;
+      color: #f0f0f0;
+    }
+    th {
+      background-color: #ddd;
+      border: 3px double #000;
+    }
+    th.dark-theme {
+      background-color: #666;
+      border-color: #000;
+    }
+    #week-plan td:first-child,
+    #week-plan th:first-child {
+      border: 3px double #000;
+      background-color: #f9f9f9;
+    }
+    #week-plan td:first-child.dark-theme,
+    #week-plan th:first-child.dark-theme {
+      background-color: #666;
+    }
+    #week-plan td[contenteditable] {
+      cursor: move;
+    }
+    #week-plan td[contenteditable].dragging {
+      opacity: 0.5;
+      background-color: #ddd;
+    }
+    .star {
+      cursor: pointer;
+      font-size: 20px;
+      margin: 0 2px;
+      animation: pulse 0.5s;
+    }
+    .star.disabled {
+      cursor: not-allowed;
+    }
+    .star.used {
+      text-decoration: line-through;
+      color: #888;
+      cursor: not-allowed;
+    }
+    .star:hover::after {
+      content: "Klick 1x für 1 Stern, 2x für 2 Sterne";
+      position: absolute;
+      background: #333;
+      color: white;
+      padding: 5px;
+      border-radius: 3px;
+      font-size: 12px;
+      z-index: 10;
+    }
+    input[type="text"], input[type="number"], select, button {
+      margin: 5px 0;
+      padding: 5px;
+    }
+    input[type="number"] {
+      width: 60px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    progress {
+      width: 100%;
+      height: 20px;
+      margin: 10px 0;
+    }
+    progress[value] {
+      background-color: #eee;
+    }
+    progress[value]::-webkit-progress-bar {
+      background-color: #eee;
+    }
+    progress[value]::-webkit-progress-value {
+      background-color: #ffeb3b;
+    }
+    progress[value]::-moz-progress-bar {
+      background-color: #ffeb3b;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    .submenu {
+      margin-top: 15px;
+      padding: 10px;
+      border-top: 1px solid #ccc;
+    }
+    .submenu.dark-theme {
+      border-color: #777;
+    }
+    .word-color-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    .word-color-item input {
+      flex: 1;
+      margin-right: 10px;
+    }
+    .delete-btn {
+      background-color: #dc3545;
+      padding: 2px 6px;
+      margin-left: 5px;
+      cursor: pointer;
+    }
+    .delete-btn:hover {
+      background-color: #c82333;
+    }
+    .undo-btn {
+      background-color: #28a745;
+      padding: 2px 4px;
+      margin-left: 2px;
+      font-size: 12px;
+      cursor: pointer;
+      display: none;
+    }
+    .undo-btn:hover {
+      background-color: #218838;
+    }
+    #error-message {
+      color: #dc3545;
+      display: none;
+      margin-top: 5px;
+    }
+    .read-aloud {
+      background-color: #007bff;
+      color: white;
+      padding: 5px 10px;
+      margin: 5px 0;
+      cursor: pointer;
+    }
+    .read-aloud:hover {
+      background-color: #0056b3;
+    }
+    .highlight {
+      background-color: yellow;
+      transition: background-color 0.5s;
+    }
+    #speech-controls {
+      margin: 10px 0;
+      display: flex;
+      gap: 10px;
+    }
+    #speech-speed {
+      padding: 5px;
+    }
+    /* Responsives Design */
+    @media (max-width: 600px) {
+      table {
+        font-size: 14px;
+      }
+      th, td {
+        padding: 4px;
+      }
+      #week-plan, #sticker-chart {
+        display: block;
+        overflow-x: auto;
+      }
+      #settings-button, #back-button {
+        top: 5px;
+        font-size: 18px;
+        padding: 5px 10px;
+      }
+      #settings {
+        width: 90%;
+        right: 5%;
+      }
+    }
+    /* Fortschrittsanzeige Farben */
+    @keyframes progressColor {
+      0% { background-color: #ffeb3b; }
+      50% { background-color: #ffc107; }
+      100% { background-color: #28a745; }
+    }
+    progress[value]::-webkit-progress-value {
+      animation: progressColor 1s infinite;
+      background-color: #ffeb3b;
+    }
+    progress[value][value="15"], progress[value][value="25"] {
+      background-color: #ffd700;
+    }
+    progress[value][value="30"] {
+      background-color: #28a745;
+    }
+    /* Modal für Fehlermeldung */
+    #star-error-modal, #badge-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+    }
+    #star-error-message, #badge-message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border-radius: 5px;
+      text-align: center;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    #star-error-message.dark-theme, #badge-message.dark-theme {
+      background: #444;
+      color: #f0f0f0;
+    }
+    .claimed {
+      text-decoration: line-through;
+      color: #888;
+    }
+    /* Abzeichen-Stil */
+    #badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .badge {
+      background-color: #ffd700;
+      padding: 10px;
+      border-radius: 5px;
+      text-align: center;
+      width: 100px;
+    }
+    .badge.locked {
+      background-color: #ccc;
+      opacity: 0.5;
+    }
+    /* Offline-Benachrichtigung */
+    #save-notification {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #28a745;
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      display: none;
+      z-index: 50;
+    }
+    /* Benutzer-Auswahl */
+    #user-selection {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 10;
+      display: none;
+    }
+    #user-selection.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div id="user-selection">
+    <label for="user-name">Benutzername:</label>
+    <input type="text" id="user-name" placeholder="Name eingeben">
+    <button onclick="setUser()">Bestätigen</button>
+  </div>
+  <div id="settings-button">⚙️</div>
+  <button id="back-button">Zurück</button>
+
+  <div id="settings">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h2>Einstellungen</h2>
+      <span id="close-settings">✖</span>
+    </div>
+
+    <div class="submenu">
+      <h3>Allgemein</h3>
+      <label for="name">Name:</label>
+      <input type="text" id="name" placeholder="Name eingeben">
+
+      <label for="back-link">Zurück-Link:</label>
+      <input type="text" id="back-link" placeholder="URL eingeben (z. B. https://example.com)">
+      <div id="error-message"></div>
+    </div>
+
+    <div class="submenu">
+      <h3>Design</h3>
+      <label for="background-color">Hintergrundfarbe:</label>
+      <select id="background-color">
+        <option value="lightblue">Hellblau</option>
+        <option value="lightgreen">Hellgrün</option>
+        <option value="lightyellow">Hellgelb</option>
+        <option value="lightpink">Hellrosa</option>
+        <option value="lightpurple">Hellviolett</option>
+        <option value="lightorange">Hellorange</option>
+        <option value="lightgray">Hellgrau</option>
+        <option value="mintgreen">Mintgrün</option>
+        <option value="peach">Pfirsich</option>
+        <option value="skyblue">Himmelblau</option>
+      </select>
+
+      <label for="font-size">Schriftgröße:</label>
+      <select id="font-size">
+        <option value="small">Klein</option>
+        <option value="medium">Mittel</option>
+        <option value="large">Groß</option>
+      </select>
+
+      <label for="font-family">Schriftart:</label>
+      <select id="font-family">
+        <option value="Arial">Arial</option>
+        <option value="Comic Sans MS">Comic Sans</option>
+        <option value="Open Sans">Open Sans</option>
+      </select>
+
+      <label for="theme">Theme:</label>
+      <select id="theme">
+        <option value="light">Hell</option>
+        <option value="dark">Dunkel</option>
+      </select>
+    </div>
+
+    <div class="submenu">
+      <h3>Wort-Farb-Zuweisung</h3>
+      <div id="word-color-settings">
+        <div class="word-color-item">
+          <input type="text" class="word-input" placeholder="Wort eingeben">
+          <select class="color-select">
+            <option value="">Keine Farbe</option>
+            <option value="lightblue">Hellblau</option>
+            <option value="lightgreen">Hellgrün</option>
+            <option value="lightyellow">Hellgelb</option>
+            <option value="lightpink">Hellrosa</option>
+            <option value="lightpurple">Hellviolett</option>
+            <option value="lightorange">Hellorange</option>
+            <option value="lightgray">Hellgrau</option>
+            <option value="mintgreen">Mintgrün</option>
+            <option value="peach">Pfirsich</option>
+            <option value="skyblue">Himmelblau</option>
+          </select>
+          <button onclick="addWordColor()">Hinzufügen</button>
+        </div>
+        <div id="word-color-list"></div>
+        <button onclick="clearWordColors()">Alle löschen</button>
+      </div>
+    </div>
+
+    <div class="submenu">
+      <h3>Belohnungen</h3>
+      <label for="new-reward">Neue Belohnung hinzufügen:</label>
+      <input type="text" id="new-reward" placeholder="Belohnung eingeben">
+      <label for="reward-category">Kategorie:</label>
+      <select id="reward-category">
+        <option value="Spielzeit">Spielzeit</option>
+        <option value="Süßigkeiten">Süßigkeiten</option>
+        <option value="Ausflüge">Ausflüge</option>
+        <option value="Sonstiges">Sonstiges</option>
+      </select>
+      <label for="reward-stars">Sterne benötigt:</label>
+      <input type="number" id="reward-stars" min="1" value="1">
+      <button onclick="addReward()">Hinzufügen</button>
+
+      <label>Belohnungen löschen:</label>
+      <div id="reward-list"></div>
+      <button onclick="deleteSelectedRewards()">Ausgewählte Belohnungen löschen</button>
+      <button onclick="resetRewards()">Alle Belohnungen zurücksetzen</button>
+    </div>
+
+    <div class="submenu">
+      <h3>Sterne & Abzeichen</h3>
+      <button onclick="resetStars()">Sterne und Abzeichen zurücksetzen</button>
+      <label for="custom-error-text">Fehlermeldung bei ungenügenden Sternen:</label>
+      <input type="text" id="custom-error-text" placeholder="Benutzerdefinierter Text">
+      <button onclick="saveCustomErrorText()">Speichern</button>
+    </div>
+
+    <div class="submenu">
+      <h3>Wochenplan</h3>
+      <button onclick="clearWeekPlan()">Wochenplan löschen</button>
+    </div>
+
+    <div class="submenu">
+      <h3>Datenverwaltung</h3>
+      <button onclick="exportData()">Wochenplan exportieren</button>
+      <label for="import-file">Wochenplan importieren:</label>
+      <input type="file" id="import-file" accept=".json" onchange="importData(event)">
+    </div>
+  </div>
+
+  <!-- Modal für Fehlermeldung -->
+  <div id="star-error-modal">
+    <div id="star-error-message">
+      <p id="star-error-text">Leider hast du nicht genug Sterne gesamt. Mach weiter und du wirst es noch schaffen.</p>
+      <button onclick="closeStarErrorModal()">OK</button>
+    </div>
+  </div>
+
+  <!-- Modal für Abzeichen -->
+  <div id="badge-modal">
+    <div id="badge-message">
+      <p id="badge-text">Glückwunsch! Du hast ein Abzeichen freigeschaltet!</p>
+      <button onclick="closeBadgeModal()">OK</button>
+    </div>
+  </div>
+
+  <!-- Benachrichtigung für Speicherung -->
+  <div id="save-notification">Daten gespeichert!</div>
+
+  <h1>Wochenplan für <span id="display-name">Name</span></h1>
+
+  <h2>Wochenplan</h2>
+  <button class="read-aloud" onclick="readSection('week-plan')">Wochenplan vorlesen</button>
+  <div id="speech-controls" style="display: none;">
+    <select id="speech-speed">
+      <option value="0.5">Langsam</option>
+      <option value="1" selected>Normal</option>
+      <option value="1.5">Schnell</option>
+      <option value="2">Sehr schnell</option>
+    </select>
+    <button onclick="stopSpeech()">Stopp</button>
+  </div>
+  <table id="week-plan">
+    <thead>
+      <tr>
+        <th>Tag</th>
+        <th>Morgens</th>
+        <th>Nachmittags</th>
+        <th>Abends</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Montag</td>
+        <td contenteditable="true" draggable="true"></td>
+        <td contenteditable="true" draggable="true"></td>
+        <td contenteditable="true" draggable="true"></td>
+      </tr>
+      <tr>
+        <td>Dienstag</td>
+        <td contenteditable="true" draggable="true"></td>
+        <td contenteditable="true" draggable="true"></td>
+        <td contenteditable="true" draggable="true"></td>
+      </tr>
+      <tr>
+        <td>Mittwoch</td>
+        <td contenteditable="true" draggable="true"></td>
+        <td contenteditable="true" draggable="true"></td>
+        <td contenteditable="true" draggable="true"></td>
+      </tr>
+      <tr>
+        <td>Donnerstag</td>
+        <td contenteditable="true" draggable="true"></td>
+        <td contenteditable="true" draggable="true"></td>
+        <td contenteditable="true" draggable="true"></td>
+      </tr>
+      <tr>
+        <td>Freitag</td>
+        <td contenteditable="true" draggable="true"></td>
+        <td contenteditable="true" draggable="true"></td>
+        <td contenteditable="true" draggable="true"></td>
+      </tr>
+      <tr>
+        <td>Samstag</td>
+        <td contenteditable="true" draggable="true"></td>
+        <td contenteditable="true" draggable="true"></td>
+        <td contenteditable="true" draggable="true"></td>
+      </tr>
+      <tr>
+        <td>Sonntag</td>
+        <td contenteditable="true" draggable="true"></td>
+        <td contenteditable="true" draggable="true"></td>
+        <td contenteditable="true" draggable="true"></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Stickerkarte</h2>
+  <button class="read-aloud" onclick="readSection('sticker-chart')">Stickerkarte vorlesen</button>
+  <table id="sticker-chart">
+    <thead>
+      <tr>
+        <th>Ziel</th>
+        <th>Mo</th>
+        <th>Di</th>
+        <th>Mi</th>
+        <th>Do</th>
+        <th>Fr</th>
+        <th>Sa</th>
+        <th>So</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td contenteditable="true"><span class="delete-btn" onclick="deleteGoal(this)">X</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+      </tr>
+      <tr>
+        <td contenteditable="true"><span class="delete-btn" onclick="deleteGoal(this)">X</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+      </tr>
+      <tr>
+        <td contenteditable="true"><span class="delete-btn" onclick="deleteGoal(this)">X</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+      </tr>
+      <tr>
+        <td contenteditable="true"><span class="delete-btn" onclick="deleteGoal(this)">X</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+        <td><span class="star" data-max="2" onclick="toggleStar(this)">★</span><span class="undo-btn" onclick="undoStar(this)">↺</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Wochenbelohnung</h2>
+  <div id="weekly-reward"></div>
+
+  <p>Fortschritt: <span id="star-count">0</span>/<span id="max-stars">0</span> Sterne</p>
+  <progress id="star-progress" max="0" value="0"></progress>
+  <p>Eingelöste Sterne: <span id="claimed-star-count">0</span></p>
+
+  <h2>Belohnungen</h2>
+  <div id="rewards"></div>
+
+  <h2>Abzeichen</h2>
+  <div id="badges"></div>
+
+  <script>
+    // Globale Variablen mit Benutzer-Präfix
+    let currentUser = localStorage.getItem('currentUser') || '';
+    let starCount = parseInt(localStorage.getItem(`${currentUser}_starCount`)) || 0;
+    let claimedStarCount = parseInt(localStorage.getItem(`${currentUser}_claimedStarCount`)) || 0;
+    const starCountDisplay = document.getElementById('star-count');
+    const claimedStarCountDisplay = document.getElementById('claimed-star-count');
+    const starProgress = document.getElementById('star-progress');
+    let wordColors = JSON.parse(localStorage.getItem(`${currentUser}_wordColors`)) || {};
+    let claimedRewards = JSON.parse(localStorage.getItem(`${currentUser}_claimedRewards`)) || [];
+    let rewards = JSON.parse(localStorage.getItem(`${currentUser}_rewards`)) || [];
+    let usedStars = JSON.parse(localStorage.getItem(`${currentUser}_usedStars`)) || {};
+    let badges = [
+      { name: "Sternenjäger", condition: () => starCount >= 10, unlocked: false },
+      { name: "Meister der Woche", condition: () => starCount >= 20, unlocked: false },
+      { name: "Belohnungskönig", condition: () => claimedRewards.filter(r => r).length >= 3, unlocked: false }
+    ];
+    badges = JSON.parse(localStorage.getItem(`${currentUser}_badges`)) || badges;
+
+    // Benutzer auswählen
+    window.setUser = function() {
+      const userName = document.getElementById('user-name').value.trim();
+      if (userName) {
+        currentUser = userName.replace(/[^a-zA-Z0-9]/g, '_'); // Nur alphanumerische Zeichen erlauben
+        localStorage.setItem('currentUser', currentUser);
+
+        // Daten für den neuen Benutzer laden oder initialisieren
+        starCount = parseInt(localStorage.getItem(`${currentUser}_starCount`)) || 0;
+        claimedStarCount = parseInt(localStorage.getItem(`${currentUser}_claimedStarCount`)) || 0;
+        wordColors = JSON.parse(localStorage.getItem(`${currentUser}_wordColors`)) || {};
+        claimedRewards = JSON.parse(localStorage.getItem(`${currentUser}_claimedRewards`)) || [];
+        rewards = JSON.parse(localStorage.getItem(`${currentUser}_rewards`)) || [];
+        usedStars = JSON.parse(localStorage.getItem(`${currentUser}_usedStars`)) || {};
+        badges = JSON.parse(localStorage.getItem(`${currentUser}_badges`)) || badges;
+
+        document.getElementById('display-name').textContent = userName;
+        document.getElementById('name').value = userName;
+        document.getElementById('user-selection').classList.remove('active');
+        initializeData();
+        showSaveNotification();
+      }
+    };
+
+    // Initialisierung prüfen
+    document.addEventListener('DOMContentLoaded', function() {
+      if (!currentUser) {
+        document.getElementById('user-selection').classList.add('active');
+      } else {
+        document.getElementById('display-name').textContent = currentUser;
+        document.getElementById('name').value = currentUser;
+        initializeData();
+      }
+    });
+
+    window.updateMaxStars = function() {
+      const stickerGoalCells = document.querySelectorAll('#sticker-chart td[contenteditable]');
+      let filledGoals = 0;
+      stickerGoalCells.forEach(cell => {
+        if (cell.textContent.trim()) {
+          filledGoals++;
+        }
+      });
+      const maxStars = filledGoals * 14; // 2 Sterne pro Tag, 7 Tage pro Ziel
+      const maxStarsDisplay = document.getElementById('max-stars');
+      const starProgress = document.getElementById('star-progress');
+      if (maxStarsDisplay && starProgress) {
+        maxStarsDisplay.textContent = maxStars;
+        starProgress.setAttribute('max', maxStars);
+      }
+      return maxStars;
+    };
+
+    window.applyWordColors = function() {
+      const weekPlanCells = document.querySelectorAll('#week-plan td[contenteditable]');
+      const stickerCells = document.querySelectorAll('#sticker-chart td[contenteditable]');
+      if (weekPlanCells && stickerCells) {
+        weekPlanCells.forEach(cell => {
+          const text = cell.textContent.trim().toLowerCase();
+          let color = '';
+          for (const [word, assignedColor] of Object.entries(wordColors)) {
+            if (text.includes(word)) {
+              if (assignedColor === 'mintgreen') color = '#98FF98';
+              else if (assignedColor === 'peach') color = '#FFDAB9';
+              else if (assignedColor === 'skyblue') color = '#87CEEB';
+              else color = assignedColor;
+              break;
+            }
+          }
+          cell.style.backgroundColor = color;
+        });
+        stickerCells.forEach(cell => {
+          const text = cell.textContent.trim().toLowerCase();
+          let color = '';
+          for (const [word, assignedColor] of Object.entries(wordColors)) {
+            if (text.includes(word)) {
+              if (assignedColor === 'mintgreen') color = '#98FF98';
+              else if (assignedColor === 'peach') color = '#FFDAB9';
+              else if (assignedColor === 'skyblue') color = '#87CEEB';
+              else color = assignedColor;
+              break;
+            }
+          }
+          cell.style.backgroundColor = color;
+        });
+      }
+      updateMaxStars();
+    };
+
+    window.toggleStar = function(star) {
+      const cell = star.parentNode;
+      const rowIndex = cell.parentNode.rowIndex - 1;
+      const dayIndex = cell.cellIndex - 1;
+      let clickCount = parseInt(localStorage.getItem(`${currentUser}_sticker-cell-${rowIndex}-${dayIndex}-clicks`)) || 0;
+
+      if (clickCount < 2 && !star.classList.contains('used')) {
+        clickCount++;
+        if (clickCount === 1) {
+          starCount++;
+        } else if (clickCount === 2) {
+          starCount++;
+        }
+
+        localStorage.setItem(`${currentUser}_sticker-cell-${rowIndex}-${dayIndex}-clicks`, clickCount);
+        localStorage.setItem(`${currentUser}_starCount`, starCount);
+        showSaveNotification();
+
+        if (starCountDisplay && starProgress) {
+          starCountDisplay.textContent = starCount;
+          starProgress.value = starCount;
+        }
+        initializeStars();
+        updateProgressColor();
+        updateWeeklyReward();
+        checkBadges();
+      }
+    };
+
+    window.undoStar = function(btn) {
+      const cell = btn.parentNode;
+      const rowIndex = cell.parentNode.rowIndex - 1;
+      const dayIndex = cell.cellIndex - 1;
+      let clickCount = parseInt(localStorage.getItem(`${currentUser}_sticker-cell-${rowIndex}-${dayIndex}-clicks`)) || 0;
+
+      if (clickCount > 0 && !usedStars[`${rowIndex}-${dayIndex}`]) {
+        clickCount--;
+        starCount--;
+        localStorage.setItem(`${currentUser}_sticker-cell-${rowIndex}-${dayIndex}-clicks`, clickCount);
+        localStorage.setItem(`${currentUser}_starCount`, starCount);
+        showSaveNotification();
+
+        if (starCountDisplay && starProgress) {
+          starCountDisplay.textContent = starCount;
+          starProgress.value = starCount;
+        }
+        initializeStars();
+        updateProgressColor();
+        updateWeeklyReward();
+        checkBadges();
+      }
+    };
+
+    window.deleteGoal = function(btn) {
+      const cell = btn.parentElement;
+      const rowIndex = cell.parentNode.rowIndex - 1;
+      if (cell) {
+        cell.textContent = '';
+        localStorage.setItem(`${currentUser}_sticker-goal-${rowIndex}`, '');
+        applyWordColors();
+        updateMaxStars();
+        updateWeeklyReward();
+        showSaveNotification();
+        const deleteBtn = document.createElement('span');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.textContent = 'X';
+        deleteBtn.onclick = function() { deleteGoal(this); };
+        cell.appendChild(deleteBtn);
+      }
+    };
+
+    window.updateWeeklyReward = function() {
+      const weeklyReward = document.getElementById('weekly-reward');
+      const maxStars = parseInt(document.getElementById('max-stars').textContent) || 0;
+      if (weeklyReward && starCount >= maxStars && rewards && rewards.length > 0 && maxStars > 0) {
+        weeklyReward.textContent = `Glückwunsch! Du hast eine Belohnung freigeschaltet: ${rewards[0].name}`;
+      } else if (weeklyReward) {
+        weeklyReward.textContent = '';
+      }
+    };
+
+    window.initializeStars = function() {
+      const stickerCells = document.querySelectorAll('#sticker-chart td:not(:first-child)');
+      stickerCells.forEach(cell => {
+        const rowIndex = cell.parentNode.rowIndex - 1;
+        const dayIndex = cell.cellIndex - 1;
+        let clickCount = parseInt(localStorage.getItem(`${currentUser}_sticker-cell-${rowIndex}-${dayIndex}-clicks`)) || 0;
+
+        if (cell) {
+          cell.innerHTML = '';
+
+          if (clickCount === 0) {
+            const star = document.createElement('span');
+            star.className = 'star';
+            star.textContent = '★';
+            star.setAttribute('data-row', rowIndex);
+            star.setAttribute('data-day', dayIndex);
+            star.onclick = function() { toggleStar(this); };
+            cell.appendChild(star);
+          } else if (clickCount === 1) {
+            const star = document.createElement('span');
+            star.className = `star ${usedStars[`${rowIndex}-${dayIndex}`] ? 'used' : ''}`;
+            star.textContent = '⭐';
+            star.setAttribute('data-row', rowIndex);
+            star.setAttribute('data-day', dayIndex);
+            star.onclick = function() { toggleStar(this); };
+            cell.appendChild(star);
+          } else if (clickCount === 2) {
+            const star1 = document.createElement('span');
+            star1.className = `star ${usedStars[`${rowIndex}-${dayIndex}`] ? 'used' : ''}`;
+            star1.textContent = '⭐';
+            star1.setAttribute('data-row', rowIndex);
+            star1.setAttribute('data-day', dayIndex);
+            const star2 = document.createElement('span');
+            star2.className = `star ${usedStars[`${rowIndex}-${dayIndex}`] ? 'used' : ''}`;
+            star2.textContent = '⭐';
+            star2.setAttribute('data-row', rowIndex);
+            star2.setAttribute('data-day', dayIndex);
+            cell.appendChild(star1);
+            cell.appendChild(star2);
+          }
+
+          const undoBtn = document.createElement('span');
+          undoBtn.className = 'undo-btn';
+          undoBtn.textContent = '↺';
+          undoBtn.onclick = function() { undoStar(this); };
+          undoBtn.style.display = clickCount > 0 && !usedStars[`${rowIndex}-${dayIndex}`] ? 'inline-block' : 'none';
+          cell.appendChild(undoBtn);
+        }
+      });
+    };
+
+    window.updateProgressColor = function() {
+      if (starProgress) {
+        const maxStars = parseInt(document.getElementById('max-stars').textContent) || 0;
+        if (maxStars === 0) return;
+        const halfMax = maxStars / 2;
+        const fullMax = maxStars;
+        if (starCount >= fullMax) {
+          starProgress.style.backgroundColor = '#28a745';
+        } else if (starCount >= halfMax) {
+          starProgress.style.backgroundColor = '#ffd700';
+        } else {
+          starProgress.style.backgroundColor = '#ffeb3b';
+        }
+      }
+    };
+
+    window.showStarErrorModal = function() {
+      const modal = document.getElementById('star-error-modal');
+      const message = document.getElementById('star-error-text');
+      if (modal && message) {
+        const customText = localStorage.getItem(`${currentUser}_customErrorText`) || 'Leider hast du nicht genug Sterne gesamt. Mach weiter und du wirst es noch schaffen.';
+        message.textContent = customText;
+        const theme = document.body.className.includes('dark-theme') ? 'dark-theme' : '';
+        document.getElementById('star-error-message').className = theme;
+        modal.style.display = 'block';
+      }
+    };
+
+    window.closeStarErrorModal = function() {
+      const modal = document.getElementById('star-error-modal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    };
+
+    window.saveCustomErrorText = function() {
+      const customErrorText = document.getElementById('custom-error-text').value.trim();
+      if (customErrorText) {
+        localStorage.setItem(`${currentUser}_customErrorText`, customErrorText);
+        document.getElementById('custom-error-text').value = '';
+        showSaveNotification();
+      }
+    };
+
+    window.claimReward = function(index, checkbox) {
+      if (!Number.isInteger(index) || index < 0 || index >= rewards.length || !rewards[index]) {
+        console.error('Invalid reward index:', index, 'Rewards:', rewards);
+        if (checkbox) checkbox.checked = false;
+        return;
+      }
+      const rewardStars = rewards[index].stars;
+
+      let usedStarsCount = 0;
+      for (let key in usedStars) {
+        if (usedStars[key]) usedStarsCount++;
+      }
+
+      const availableStars = starCount - usedStarsCount;
+
+      if (availableStars < rewardStars) {
+        showStarErrorModal();
+        if (checkbox) checkbox.checked = false;
+        return;
+      }
+
+      claimedRewards[index] = true;
+      localStorage.setItem(`${currentUser}_claimedRewards`, JSON.stringify(claimedRewards));
+
+      const stickerCells = document.querySelectorAll('#sticker-chart td:not(:first-child)');
+      let starsToUse = rewardStars;
+      for (let i = 0; i < stickerCells.length && starsToUse > 0; i++) {
+        const cell = stickerCells[i];
+        const rowIndex = cell.parentNode.rowIndex - 1;
+        const dayIndex = cell.cellIndex - 1;
+        const key = `${rowIndex}-${dayIndex}`;
+        if (!usedStars[key] && cell.querySelector('.star') && starsToUse > 0) {
+          const stars = cell.querySelectorAll('.star');
+          const clickCount = parseInt(localStorage.getItem(`${currentUser}_sticker-cell-${rowIndex}-${dayIndex}-clicks`)) || 0;
+          if (clickCount > 0) {
+            usedStars[key] = true;
+            stars.forEach(star => star.classList.add('used'));
+            starsToUse -= clickCount;
+            claimedStarCount += clickCount;
+          }
+        }
+      }
+
+      localStorage.setItem(`${currentUser}_usedStars`, JSON.stringify(usedStars));
+      localStorage.setItem(`${currentUser}_claimedStarCount`, claimedStarCount);
+      showSaveNotification();
+
+      if (claimedStarCountDisplay) {
+        claimedStarCountDisplay.textContent = claimedStarCount;
+      }
+      initializeStars();
+      updateWeeklyReward();
+      window.renderRewards();
+      checkBadges();
+    };
+
+    window.renderRewards = function() {
+      const rewardList = document.getElementById('reward-list');
+      const rewardsDiv = document.getElementById('rewards');
+      if (rewardList && rewardsDiv) {
+        rewardList.innerHTML = '';
+        rewards.forEach((reward, index) => {
+          const rewardItem = document.createElement('div');
+          rewardItem.innerHTML = `<input type="checkbox" id="reward-${index}" value="${reward.name}"> ${reward.name} (${reward.stars} Sterne, ${reward.category}) <span class="delete-btn" onclick="deleteReward(${index})">X</span>`;
+          rewardList.appendChild(rewardItem);
+        });
+
+        rewardsDiv.innerHTML = '';
+        const groupedRewards = {};
+        rewards.forEach((reward, index) => {
+          const category = reward.category || 'Sonstiges';
+          if (!groupedRewards[category]) groupedRewards[category] = [];
+          groupedRewards[category].push({ reward, index });
+        });
+
+        for (const [category, items] of Object.entries(groupedRewards)) {
+          const categoryDiv = document.createElement('div');
+          const categoryTitle = document.createElement('h3');
+          categoryTitle.textContent = category;
+          categoryDiv.appendChild(categoryTitle);
+          items.forEach(({ reward, index }) => {
+            const rewardDisplay = document.createElement('div');
+            const isClaimed = claimedRewards[index] === true;
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `claim-reward-${index}`;
+            checkbox.checked = isClaimed;
+            checkbox.disabled = isClaimed;
+            const label = document.createElement('span');
+            label.className = isClaimed ? 'claimed' : '';
+            label.textContent = `${reward.name} (${reward.stars} Sterne)`;
+            rewardDisplay.appendChild(checkbox);
+            rewardDisplay.appendChild(label);
+            categoryDiv.appendChild(rewardDisplay);
+          });
+          rewardsDiv.appendChild(categoryDiv);
+        }
+      }
+    };
+
+    window.addReward = function() {
+      const newReward = document.getElementById('new-reward');
+      const rewardStars = document.getElementById('reward-stars');
+      const rewardCategory = document.getElementById('reward-category');
+      if (newReward && rewardStars && rewardCategory) {
+        const name = newReward.value.trim();
+        const stars = parseInt(rewardStars.value);
+        const category = rewardCategory.value;
+        if (name && stars >= 1) {
+          rewards.push({ name, stars, category });
+          claimedRewards.push(false);
+          localStorage.setItem(`${currentUser}_rewards`, JSON.stringify(rewards));
+          localStorage.setItem(`${currentUser}_claimedRewards`, JSON.stringify(claimedRewards));
+          showSaveNotification();
+          window.renderRewards();
+          newReward.value = '';
+          rewardStars.value = 1;
+          initializeStars();
+        }
+      }
+    };
+
+    window.deleteReward = function(index) {
+      if (index >= 0 && index < rewards.length) {
+        rewards.splice(index, 1);
+        claimedRewards.splice(index, 1);
+        localStorage.setItem(`${currentUser}_rewards`, JSON.stringify(rewards));
+        localStorage.setItem(`${currentUser}_claimedRewards`, JSON.stringify(claimedRewards));
+        showSaveNotification();
+        window.renderRewards();
+        initializeStars();
+      }
+    };
+
+    window.deleteSelectedRewards = function() {
+      const rewardList = document.getElementById('reward-list');
+      if (rewardList) {
+        const indicesToDelete = [];
+        rewards.forEach((_, index) => {
+          const checkbox = document.getElementById(`reward-${index}`);
+          if (checkbox && checkbox.checked) indicesToDelete.push(index);
+        });
+        indicesToDelete.sort((a, b) => b - a).forEach(index => {
+          rewards.splice(index, 1);
+          claimedRewards.splice(index, 1);
+        });
+        localStorage.setItem(`${currentUser}_rewards`, JSON.stringify(rewards));
+        localStorage.setItem(`${currentUser}_claimedRewards`, JSON.stringify(claimedRewards));
+        showSaveNotification();
+        window.renderRewards();
+        initializeStars();
+      }
+    };
+
+    window.resetStars = function() {
+      const stickerCells = document.querySelectorAll('#sticker-chart td:not(:first-child)');
+      if (stickerCells) {
+        stickerCells.forEach(cell => {
+          const rowIndex = cell.parentNode.rowIndex - 1;
+          const dayIndex = cell.cellIndex - 1;
+          localStorage.setItem(`${currentUser}_sticker-cell-${rowIndex}-${dayIndex}-clicks`, '0');
+        });
+        starCount = 0;
+        usedStars = {};
+        claimedStarCount = 0;
+        badges.forEach(badge => badge.unlocked = false);
+        localStorage.setItem(`${currentUser}_starCount`, starCount);
+        localStorage.setItem(`${currentUser}_usedStars`, JSON.stringify(usedStars));
+        localStorage.setItem(`${currentUser}_claimedStarCount`, claimedStarCount);
+        localStorage.setItem(`${currentUser}_badges`, JSON.stringify(badges));
+        showSaveNotification();
+        if (starCountDisplay && starProgress && claimedStarCountDisplay) {
+          starCountDisplay.textContent = starCount;
+          starProgress.value = starCount;
+          claimedStarCountDisplay.textContent = claimedStarCount;
+        }
+        initializeStars();
+        updateProgressColor();
+        updateWeeklyReward();
+        renderBadges();
+      }
+    };
+
+    window.resetRewards = function() {
+      rewards = [];
+      claimedRewards = [];
+      localStorage.setItem(`${currentUser}_rewards`, JSON.stringify(rewards));
+      localStorage.setItem(`${currentUser}_claimedRewards`, JSON.stringify(claimedRewards));
+      showSaveNotification();
+      window.renderRewards();
+      initializeStars();
+      checkBadges();
+    };
+
+    window.clearWeekPlan = function() {
+      const weekPlanCells = document.querySelectorAll('#week-plan td[contenteditable]');
+      if (weekPlanCells) {
+        weekPlanCells.forEach(cell => {
+          cell.textContent = '';
+          localStorage.removeItem(`${currentUser}_cell-${cell.parentNode.rowIndex}-${cell.cellIndex}`);
+        });
+        showSaveNotification();
+      }
+    };
+
+    // Drag-and-Drop Funktionalität
+    let draggedCell = null;
+
+    window.handleDragStart = function(event) {
+      draggedCell = event.target;
+      event.target.classList.add('dragging');
+      event.dataTransfer.setData('text/plain', draggedCell.textContent);
+    };
+
+    window.handleDragOver = function(event) {
+      event.preventDefault();
+    };
+
+    window.handleDrop = function(event) {
+      event.preventDefault();
+      if (draggedCell && event.target.hasAttribute('contenteditable')) {
+        const targetCell = event.target;
+        const draggedText = draggedCell.textContent;
+        draggedCell.textContent = targetCell.textContent;
+        targetCell.textContent = draggedText;
+
+        const draggedId = `${currentUser}_cell-${draggedCell.parentNode.rowIndex}-${draggedCell.cellIndex}`;
+        const targetId = `${currentUser}_cell-${targetCell.parentNode.rowIndex}-${targetCell.cellIndex}`;
+        localStorage.setItem(draggedId, draggedCell.textContent);
+        localStorage.setItem(targetId, targetCell.textContent);
+        showSaveNotification();
+        applyWordColors();
+      }
+      draggedCell.classList.remove('dragging');
+      draggedCell = null;
+    };
+
+    window.handleDragEnd = function(event) {
+      event.target.classList.remove('dragging');
+      draggedCell = null;
+    };
+
+    // Export- und Importfunktionen
+    window.exportData = function() {
+      const data = {
+        starCount: starCount,
+        claimedStarCount: claimedStarCount,
+        wordColors: wordColors,
+        rewards: rewards,
+        claimedRewards: claimedRewards,
+        usedStars: usedStars,
+        badges: badges,
+        weekPlan: {},
+        stickerGoals: {}
+      };
+
+      const weekPlanCells = document.querySelectorAll('#week-plan td[contenteditable]');
+      weekPlanCells.forEach(cell => {
+        const cellId = `${currentUser}_cell-${cell.parentNode.rowIndex}-${cell.cellIndex}`;
+        data.weekPlan[cellId] = cell.textContent;
+      });
+
+      const stickerGoalCells = document.querySelectorAll('#sticker-chart td[contenteditable]');
+      stickerGoalCells.forEach(cell => {
+        const rowIndex = cell.parentNode.rowIndex - 1;
+        data.stickerGoals[`${currentUser}_sticker-goal-${rowIndex}`] = cell.textContent;
+      });
+
+      const stickerCells = document.querySelectorAll('#sticker-chart td:not(:first-child)');
+      stickerCells.forEach(cell => {
+        const rowIndex = cell.parentNode.rowIndex - 1;
+        const dayIndex = cell.cellIndex - 1;
+        const clickCount = parseInt(localStorage.getItem(`${currentUser}_sticker-cell-${rowIndex}-${dayIndex}-clicks`)) || 0;
+        data[`${currentUser}_sticker-cell-${rowIndex}-${dayIndex}-clicks`] = clickCount;
+      });
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${currentUser}_wochenplan-data.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    window.importData = function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          starCount = data.starCount || 0;
+          claimedStarCount = data.claimedStarCount || 0;
+          wordColors = data.wordColors || {};
+          rewards = data.rewards || [];
+          claimedRewards = data.claimedRewards || [];
+          usedStars = data.usedStars || {};
+          badges = data.badges || badges;
+
+          localStorage.setItem(`${currentUser}_starCount`, starCount);
+          localStorage.setItem(`${currentUser}_claimedStarCount`, claimedStarCount);
+          localStorage.setItem(`${currentUser}_wordColors`, JSON.stringify(wordColors));
+          localStorage.setItem(`${currentUser}_rewards`, JSON.stringify(rewards));
+          localStorage.setItem(`${currentUser}_claimedRewards`, JSON.stringify(claimedRewards));
+          localStorage.setItem(`${currentUser}_usedStars`, JSON.stringify(usedStars));
+          localStorage.setItem(`${currentUser}_badges`, JSON.stringify(badges));
+
+          const weekPlanCells = document.querySelectorAll('#week-plan td[contenteditable]');
+          weekPlanCells.forEach(cell => {
+            const cellId = `${currentUser}_cell-${cell.parentNode.rowIndex}-${cell.cellIndex}`;
+            cell.textContent = data.weekPlan[cellId] || '';
+            localStorage.setItem(cellId, cell.textContent);
+          });
+
+          const stickerGoalCells = document.querySelectorAll('#sticker-chart td[contenteditable]');
+          stickerGoalCells.forEach(cell => {
+            const rowIndex = cell.parentNode.rowIndex - 1;
+            cell.textContent = data.stickerGoals[`${currentUser}_sticker-goal-${rowIndex}`] || '';
+            localStorage.setItem(`${currentUser}_sticker-goal-${rowIndex}`, cell.textContent);
+          });
+
+          const stickerCells = document.querySelectorAll('#sticker-chart td:not(:first-child)');
+          stickerCells.forEach(cell => {
+            const rowIndex = cell.parentNode.rowIndex - 1;
+            const dayIndex = cell.cellIndex - 1;
+            const clickCount = data[`${currentUser}_sticker-cell-${rowIndex}-${dayIndex}-clicks`] || 0;
+            localStorage.setItem(`${currentUser}_sticker-cell-${rowIndex}-${dayIndex}-clicks`, clickCount);
+          });
+
+          showSaveNotification();
+          initializeStars();
+          applyWordColors();
+          updateMaxStars();
+          updateProgressColor();
+          updateWeeklyReward();
+          renderRewards();
+          renderBadges();
+        } catch (error) {
+          alert('Fehler beim Importieren der Daten: ' + error.message);
+        }
+      };
+      reader.readAsText(file);
+    };
+
+    // Abzeichen-Funktionen
+    window.checkBadges = function() {
+      badges.forEach(badge => {
+        if (!badge.unlocked && badge.condition()) {
+          badge.unlocked = true;
+          showBadgeModal(badge.name);
+        }
+      });
+      localStorage.setItem(`${currentUser}_badges`, JSON.stringify(badges));
+      renderBadges();
+    };
+
+    window.showBadgeModal = function(badgeName) {
+      const modal = document.getElementById('badge-modal');
+      const message = document.getElementById('badge-text');
+      if (modal && message) {
+        message.textContent = `Glückwunsch! Du hast das Abzeichen "${badgeName}" freigeschaltet!`;
+        const theme = document.body.className.includes('dark-theme') ? 'dark-theme' : '';
+        document.getElementById('badge-message').className = theme;
+        modal.style.display = 'block';
+      }
+    };
+
+    window.closeBadgeModal = function() {
+      const modal = document.getElementById('badge-modal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    };
+
+    window.renderBadges = function() {
+      const badgesDiv = document.getElementById('badges');
+      if (badgesDiv) {
+        badgesDiv.innerHTML = '';
+        badges.forEach(badge => {
+          const badgeElement = document.createElement('div');
+          badgeElement.className = `badge ${badge.unlocked ? '' : 'locked'}`;
+          badgeElement.textContent = badge.unlocked ? badge.name : '???';
+          badgesDiv.appendChild(badgeElement);
+        });
+      }
+    };
+
+    // Speicher-Benachrichtigung
+    window.showSaveNotification = function() {
+      const notification = document.getElementById('save-notification');
+      if (notification) {
+        notification.style.display = 'block';
+        setTimeout(() => {
+          notification.style.display = 'none';
+        }, 2000);
+      }
+    };
+
+    window.initializeData = function() {
+      const settingsButton = document.getElementById('settings-button');
+      const closeSettings = document.getElementById('close-settings');
+      const settings = document.getElementById('settings');
+      if (settingsButton && closeSettings && settings) {
+        settingsButton.addEventListener('click', function() {
+          settings.style.display = 'block';
+        });
+        closeSettings.addEventListener('click', function() {
+          settings.style.display = 'none';
+        });
+      }
+
+      const backButton = document.getElementById('back-button');
+      const backLink = document.getElementById('back-link');
+      const errorMessage = document.getElementById('error-message');
+      if (backButton && backLink && errorMessage) {
+        backButton.addEventListener('click', function() {
+          const link = backLink.value.trim();
+          if (validateLink(link)) {
+            window.open(link, '_blank');
+            if (errorMessage) errorMessage.style.display = 'none';
+          } else {
+            if (errorMessage) {
+              errorMessage.textContent = 'Ungültiger Link! Bitte mit http:// oder https:// beginnen.';
+              errorMessage.style.display = 'block';
+            }
+          }
+        });
+
+        function validateLink(link) {
+          return link && (link.startsWith('http://') || link.startsWith('https://'));
+        }
+
+        backLink.addEventListener('input', function() {
+          const link = this.value.trim();
+          localStorage.setItem(`${currentUser}_backLink`, link);
+          if (errorMessage) {
+            if (!validateLink(link)) {
+              errorMessage.textContent = 'Ungültiger Link! Bitte mit http:// oder https:// beginnen.';
+              errorMessage.style.display = 'block';
+            } else {
+              errorMessage.style.display = 'none';
+            }
+          }
+          showSaveNotification();
+        });
+        if (localStorage.getItem(`${currentUser}_backLink`)) {
+          backLink.value = localStorage.getItem(`${currentUser}_backLink`);
+        }
+      }
+
+      const themeSelect = document.getElementById('theme');
+      if (themeSelect) {
+        themeSelect.addEventListener('change', function() {
+          const theme = this.value;
+          document.body.className = theme === 'dark' ? 'dark-theme' : '';
+          document.querySelectorAll('table, #settings, th, td, h3').forEach(el => {
+            el.className = theme === 'dark' ? el.className + ' dark-theme' : el.className.replace(' dark-theme', '');
+          });
+          localStorage.setItem(`${currentUser}_theme`, theme);
+          showSaveNotification();
+        });
+        if (localStorage.getItem(`${currentUser}_theme`)) {
+          themeSelect.value = localStorage.getItem(`${currentUser}_theme`);
+          if (localStorage.getItem(`${currentUser}_theme`) === 'dark') {
+            document.body.className = 'dark-theme';
+            document.querySelectorAll('table, #settings, th, td, h3').forEach(el => {
+              el.className += ' dark-theme';
+            });
+          }
+        }
+      }
+
+      const nameInput = document.getElementById('name');
+      const displayName = document.getElementById('display-name');
+      if (nameInput && displayName) {
+        nameInput.addEventListener('input', function() {
+          const name = this.value;
+          displayName.textContent = name;
+          localStorage.setItem(`${currentUser}_name`, name);
+          showSaveNotification();
+        });
+        if (localStorage.getItem(`${currentUser}_name`)) {
+          nameInput.value = localStorage.getItem(`${currentUser}_name`);
+          displayName.textContent = localStorage.getItem(`${currentUser}_name`);
+        }
+      }
+
+      const backgroundColor = document.getElementById('background-color');
+      if (backgroundColor) {
+        backgroundColor.addEventListener('change', function() {
+          let color = this.value;
+          if (color === 'mintgreen') color = '#98FF98';
+          else if (color === 'peach') color = '#FFDAB9';
+          else if (color === 'skyblue') color = '#87CEEB';
+          document.body.style.backgroundColor = color;
+          localStorage.setItem(`${currentUser}_backgroundColor`, this.value);
+          showSaveNotification();
+        });
+        if (localStorage.getItem(`${currentUser}_backgroundColor`)) {
+          backgroundColor.value = localStorage.getItem(`${currentUser}_backgroundColor`);
+          let color = localStorage.getItem(`${currentUser}_backgroundColor`);
+          if (color === 'mintgreen') color = '#98FF98';
+          else if (color === 'peach') color = '#FFDAB9';
+          else if (color === 'skyblue') color = '#87CEEB';
+          document.body.style.backgroundColor = color;
+        }
+      }
+
+      const fontSize = document.getElementById('font-size');
+      if (fontSize) {
+        fontSize.addEventListener('change', function() {
+          const size = this.value;
+          if (size === 'small') document.body.style.fontSize = '12px';
+          if (size === 'medium') document.body.style.fontSize = '16px';
+          if (size === 'large') document.body.style.fontSize = '20px';
+          localStorage.setItem(`${currentUser}_fontSize`, size);
+          showSaveNotification();
+        });
+        if (localStorage.getItem(`${currentUser}_fontSize`)) {
+          fontSize.value = localStorage.getItem(`${currentUser}_fontSize`);
+          const size = localStorage.getItem(`${currentUser}_fontSize`);
+          if (size === 'small') document.body.style.fontSize = '12px';
+          if (size === 'medium') document.body.style.fontSize = '16px';
+          if (size === 'large') document.body.style.fontSize = '20px';
+        }
+      }
+
+      const fontFamily = document.getElementById('font-family');
+      if (fontFamily) {
+        fontFamily.addEventListener('change', function() {
+          const font = this.value;
+          document.body.style.fontFamily = font;
+          localStorage.setItem(`${currentUser}_fontFamily`, font);
+          showSaveNotification();
+        });
+        if (localStorage.getItem(`${currentUser}_fontFamily`)) {
+          fontFamily.value = localStorage.getItem(`${currentUser}_fontFamily`);
+          document.body.style.fontFamily = localStorage.getItem(`${currentUser}_fontFamily`);
+        }
+      }
+
+      function renderWordColors() {
+        const wordColorList = document.getElementById('word-color-list');
+        if (wordColorList) {
+          wordColorList.innerHTML = '';
+          for (const [word, color] of Object.entries(wordColors)) {
+            const item = document.createElement('div');
+            item.className = 'word-color-item';
+            item.innerHTML = `
+              <span>${word}</span>
+              <select class="color-select" onchange="updateWordColor('${word}', this.value)">
+                <option value="">Keine Farbe</option>
+                <option value="lightblue" ${color === 'lightblue' ? 'selected' : ''}>Hellblau</option>
+                <option value="lightgreen" ${color === 'lightgreen' ? 'selected' : ''}>Hellgrün</option>
+                <option value="lightyellow" ${color === 'lightyellow' ? 'selected' : ''}>Hellgelb</option>
+                <option value="lightpink" ${color === 'lightpink' ? 'selected' : ''}>Hellrosa</option>
+                <option value="lightpurple" ${color === 'lightpurple' ? 'selected' : ''}>Hellviolett</option>
+                <option value="lightorange" ${color === 'lightorange' ? 'selected' : ''}>Hellorange</option>
+                <option value="lightgray" ${color === 'lightgray' ? 'selected' : ''}>Hellgrau</option>
+                <option value="mintgreen" ${color === 'mintgreen' ? 'selected' : ''}>Mintgrün</option>
+                <option value="peach" ${color === 'peach' ? 'selected' : ''}>Pfirsich</option>
+                <option value="skyblue" ${color === 'skyblue' ? 'selected' : ''}>Himmelblau</option>
+              </select>
+              <button onclick="removeWordColor('${word}')">Löschen</button>
+            `;
+            wordColorList.appendChild(item);
+          }
+        }
+      }
+      renderWordColors();
+
+      window.addWordColor = function() {
+        const wordInput = document.querySelector('.word-input');
+        const colorSelect = document.querySelector('.color-select');
+        if (wordInput && colorSelect) {
+          const word = wordInput.value.trim().toLowerCase();
+          const color = colorSelect.value;
+          if (word && color) {
+            wordColors[word] = color;
+            localStorage.setItem(`${currentUser}_wordColors`, JSON.stringify(wordColors));
+            showSaveNotification();
+            wordInput.value = '';
+            colorSelect.value = '';
+            renderWordColors();
+            applyWordColors();
+          }
+        }
+      };
+
+      window.updateWordColor = function(word, color) {
+        wordColors[word] = color;
+        localStorage.setItem(`${currentUser}_wordColors`, JSON.stringify(wordColors));
+        showSaveNotification();
+        applyWordColors();
+      };
+
+      window.removeWordColor = function(word) {
+        delete wordColors[word];
+        localStorage.setItem(`${currentUser}_wordColors`, JSON.stringify(wordColors));
+        showSaveNotification();
+        renderWordColors();
+        applyWordColors();
+      };
+
+      window.clearWordColors = function() {
+        wordColors = {};
+        localStorage.setItem(`${currentUser}_wordColors`, JSON.stringify(wordColors));
+        showSaveNotification();
+        renderWordColors();
+        applyWordColors();
+      };
+
+      applyWordColors();
+
+      const weekPlanCells = document.querySelectorAll('#week-plan td[contenteditable]');
+      if (weekPlanCells) {
+        weekPlanCells.forEach(cell => {
+          const cellId = `${currentUser}_cell-${cell.parentNode.rowIndex}-${cell.cellIndex}`;
+          cell.id = cellId;
+          cell.addEventListener('input', () => {
+            localStorage.setItem(cellId, cell.textContent);
+            showSaveNotification();
+            applyWordColors();
+          });
+          if (localStorage.getItem(cellId)) {
+            cell.textContent = localStorage.getItem(cellId);
+          }
+          cell.addEventListener('dragstart', handleDragStart);
+          cell.addEventListener('dragover', handleDragOver);
+          cell.addEventListener('drop', handleDrop);
+          cell.addEventListener('dragend', handleDragEnd);
+        });
+      }
+
+      const stickerGoalCells = document.querySelectorAll('#sticker-chart td[contenteditable]');
+      if (stickerGoalCells) {
+        stickerGoalCells.forEach(cell => {
+          cell.addEventListener('input', () => {
+            localStorage.setItem(`${currentUser}_sticker-goal-${cell.parentNode.rowIndex - 1}`, cell.textContent);
+            showSaveNotification();
+            applyWordColors();
+            updateMaxStars();
+            updateWeeklyReward();
+          });
+          if (localStorage.getItem(`${currentUser}_sticker-goal-${cell.parentNode.rowIndex - 1}`)) {
+            cell.textContent = localStorage.getItem(`${currentUser}_sticker-goal-${cell.parentNode.rowIndex - 1}`);
+          }
+        });
+      }
+
+      updateMaxStars();
+
+      if (starCountDisplay && starProgress && claimedStarCountDisplay) {
+        starCountDisplay.textContent = starCount;
+        starProgress.value = starCount;
+        claimedStarCountDisplay.textContent = claimedStarCount;
+        updateProgressColor();
+      }
+
+      initializeStars();
+
+      window.renderRewards();
+      renderBadges();
+
+      const rewardsDiv = document.getElementById('rewards');
+      if (rewardsDiv) {
+        rewardsDiv.addEventListener('change', function(e) {
+          const checkbox = e.target;
+          if (checkbox.type === 'checkbox' && checkbox.id.startsWith('claim-reward-')) {
+            const index = parseInt(checkbox.id.split('-')[2], 10);
+            if (index >= 0 && index < rewards.length) {
+              claimReward(index, checkbox);
+            } else {
+              console.warn('Index out of bounds during event handling:', index, 'Rewards length:', rewards.length);
+              checkbox.checked = false;
+              window.renderRewards();
+            }
+          }
+        });
+      }
+
+      let speechSynthesis = window.speechSynthesis;
+      let utterance = new SpeechSynthesisUtterance();
+      let isSpeaking = false;
+
+      window.readSection = function(sectionId) {
+        if (isSpeaking) {
+          speechSynthesis.cancel();
+          isSpeaking = false;
+        }
+
+        const table = document.getElementById(sectionId);
+        if (!table) return;
+
+        const speechSpeed = parseFloat(document.getElementById('speech-speed').value);
+        utterance.rate = speechSpeed;
+        utterance.lang = 'de-DE';
+
+        let textToRead = 'Start. ';
+        const cells = table.querySelectorAll('td[contenteditable]');
+        
+        if (sectionId === 'week-plan') {
+          const days = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+          const times = ['Morgens', 'Nachmittags', 'Abends'];
+          
+          cells.forEach((cell, index) => {
+            const rowIndex = Math.floor(index / 3);
+            const timeIndex = index % 3;
+            const day = days[rowIndex];
+            const time = times[timeIndex];
+            const cellText = cell.textContent.trim();
+            if (cellText) {
+              textToRead += `${day} ${time}, ${cellText}. `;
+            }
+          });
+          textToRead = textToRead.replace('Start. ', '');
+        } else {
+          cells.forEach(cell => {
+            textToRead += cell.textContent.trim() + '. ';
+          });
+        }
+
+        if (textToRead) {
+          utterance.text = textToRead;
+          utterance.onstart = () => {
+            isSpeaking = true;
+            document.getElementById('speech-controls').style.display = 'flex';
+            cells.forEach(cell => cell.classList.remove('highlight'));
+            let index = 0;
+            const interval = setInterval(() => {
+              if (index < cells.length) {
+                cells[index].classList.add('highlight');
+                index++;
+              } else {
+                clearInterval(interval);
+              }
+            }, 1000 * speechSpeed);
+          };
+          utterance.onend = () => {
+            isSpeaking = false;
+            cells.forEach(cell => cell.classList.remove('highlight'));
+            document.getElementById('speech-controls').style.display = 'none';
+          };
+          utterance.onerror = () => {
+            isSpeaking = false;
+            cells.forEach(cell => cell.classList.remove('highlight'));
+            document.getElementById('speech-controls').style.display = 'none';
+          };
+          speechSynthesis.speak(utterance);
+        }
+      };
+
+      window.stopSpeech = function() {
+        if (isSpeaking) {
+          speechSynthesis.cancel();
+          isSpeaking = false;
+          const cells = document.querySelectorAll('td[contenteditable]');
+          cells.forEach(cell => cell.classList.remove('highlight'));
+          document.getElementById('speech-controls').style.display = 'none';
+        }
+      };
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(reg => {
+            console.log('Service Worker registered successfully:', reg.scope);
+          })
+          .catch(err => {
+            console.error('Service Worker registration failed:', err);
+            if (err.message.includes('only available in secure contexts')) {
+              console.warn('Service Workers require HTTPS or localhost. Use a local server with HTTPS or localhost.');
+            } else if (err.message.includes('Failed to register')) {
+              console.warn('Check if service-worker.js is in the correct directory and served correctly.');
+            }
+          });
+      }
+    };
+  </script>
+</body>
+</html>
